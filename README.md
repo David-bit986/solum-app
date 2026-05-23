@@ -90,3 +90,4 @@ To package the application as a standalone executable (`.exe` for Windows, `.app
    ```bash
    npx electron-builder
    ```
+# solum-app
