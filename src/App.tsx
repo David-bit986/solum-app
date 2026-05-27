@@ -74,6 +74,9 @@ export default function App() {
   const [photoSize, setPhotoSize] = useState<'sm' | 'md' | 'lg'>(() => {
     return (localStorage.getItem('solum_photoSize') as 'sm' | 'md' | 'lg') || 'md'
   })
+  const [imageFit, setImageFit] = useState<'cover' | 'contain'>(() => {
+    return (localStorage.getItem('solum_imageFit') as 'cover' | 'contain') || 'cover'
+  })
   const [actionMode, setActionMode] = useState<'rename' | 'delete' | null>(null)
 
   // Workspace filesystem configuration
@@ -120,6 +123,9 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('solum_photoSize', photoSize)
   }, [photoSize])
+  useEffect(() => {
+    localStorage.setItem('solum_imageFit', imageFit)
+  }, [imageFit])
 
   // Initial load theme class
   useEffect(() => {
@@ -137,17 +143,19 @@ export default function App() {
     loadPhotos()
   }, [activeVaultName, browserPhotosMap, isElectron])
 
-  // Bind photo rename trigger globally to allow callback communication from components
+  // Prevent default drag and drop behavior globally to prevent window navigation
   useEffect(() => {
-    // @ts-ignore
-    window.onPhotoRenameTrigger = (id: string, newName: string) => {
-      handleRenamePhoto(id, newName)
+    const preventDefault = (e: DragEvent) => {
+      e.preventDefault()
     }
+    document.addEventListener('dragover', preventDefault)
+    document.addEventListener('drop', preventDefault)
     return () => {
-      // @ts-ignore
-      delete window.onPhotoRenameTrigger
+      document.removeEventListener('dragover', preventDefault)
+      document.removeEventListener('drop', preventDefault)
     }
-  }, [activeVaultName, workspacePath, isElectron, browserPhotosMap])
+  }, [])
+
 
   const loadVaults = async () => {
     if (isElectron && workspacePath) {
@@ -282,20 +290,29 @@ export default function App() {
   const handleAddPhotos = async (files: FileList) => {
     if (!activeVaultName) return
 
+    const supportedExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif', '.ico', '.avif', '.pdf']
+
     if (isElectron && workspacePath) {
       try {
+        let copiedAny = false
         for (let i = 0; i < files.length; i++) {
           const file = files[i]
-          // @ts-ignore - Electron file objects carry the physical path property
-          const physicalPath = file.path
+          const ext = file.name.substring(file.name.lastIndexOf('.')).toLowerCase()
+          if (!supportedExts.includes(ext)) {
+            continue
+          }
+          const physicalPath = window.electronAPI.getPathForFile(file)
           if (physicalPath) {
             await window.electronAPI.writePhoto(workspacePath, activeVaultName, physicalPath, file.name)
+            copiedAny = true
           }
         }
-        await loadPhotos()
-        await loadVaults()
+        if (copiedAny) {
+          await loadPhotos()
+          await loadVaults()
+        }
       } catch (err) {
-        alert('Failed to save photo files')
+        alert('Failed to save files')
       }
     } else if (!isElectron) {
       // Browser fallback - generate object URLs
@@ -305,7 +322,9 @@ export default function App() {
 
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        if (file.type.startsWith('image/')) {
+        const isImage = file.type.startsWith('image/')
+        const isPdf = file.type === 'application/pdf'
+        if (isImage || isPdf) {
           const url = URL.createObjectURL(file)
           const name = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
           newPhotos.push({
@@ -440,6 +459,8 @@ export default function App() {
         onSetFolderSize={setFolderSize}
         photoSize={photoSize}
         onSetPhotoSize={setPhotoSize}
+        imageFit={imageFit}
+        onSetImageFit={setImageFit}
       >
         {activeVaultName ? (
           <div className="space-y-4">
@@ -458,10 +479,12 @@ export default function App() {
               vaultName={activeVaultName}
               onAddPhotos={handleAddPhotos}
               onDeletePhoto={handleDeletePhoto}
+              onRenamePhoto={handleRenamePhoto}
               actionMode={actionMode}
               onSetActionMode={setActionMode}
               photoSize={photoSize}
               fontSize={fontSize}
+              imageFit={imageFit}
             />
           </div>
         ) : (

@@ -35,6 +35,8 @@ export interface AppShellProps {
   onSetPhotoSize?: (size: 'sm' | 'md' | 'lg') => void
   fontSize?: number
   onSetFontSize?: (size: number) => void
+  imageFit?: 'cover' | 'contain'
+  onSetImageFit?: (fit: 'cover' | 'contain') => void
 }
 
 export interface MainNavProps {
@@ -59,9 +61,11 @@ export interface MoodboardGridProps {
   vaultName?: string
   onAddPhotos?: (files: FileList) => void
   onDeletePhoto?: (id: string) => void
+  onRenamePhoto?: (id: string, newName: string) => void
   onBack?: () => void
   actionMode?: 'rename' | 'delete' | null
   onSetActionMode?: (mode: 'rename' | 'delete' | null) => void
   photoSize?: 'sm' | 'md' | 'lg'
   fontSize?: number
+  imageFit?: 'cover' | 'contain'
 }

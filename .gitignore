@@ -23,3 +23,12 @@ dist-electron
 *.njsproj
 *.sln
 *.sw?
+
+# Build artifacts
+release/
+
+# Dev scratch
+scratch/
+
+# Agent data
+.antigravitycli/

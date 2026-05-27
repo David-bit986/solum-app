@@ -16,6 +16,8 @@ export function AppShell({
   onSetPhotoSize,
   fontSize = 14,
   onSetFontSize,
+  imageFit = 'cover',
+  onSetImageFit,
 }: AppShellProps) {
   // Sync dark mode state locally for the shell preview
   const [isDark, setIsDark] = React.useState(() => {
@@ -239,22 +241,43 @@ export function AppShell({
 
                   {/* Photo Size Option - only visible in a vault (active vault name is present) */}
                   {activeVaultName && (
-                    <div>
-                      <span className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Photo Size</span>
-                      <div className="grid grid-cols-3 gap-1 bg-zinc-50 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-100 dark:border-zinc-800">
-                        {(['sm', 'md', 'lg'] as const).map((sz) => (
-                          <button
-                            key={sz}
-                            onClick={() => onSetPhotoSize?.(sz)}
-                            className={`text-[10px] py-1 rounded-md font-medium capitalize cursor-pointer transition-all ${
-                              photoSize === sz
-                                ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700'
-                                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 border border-transparent'
-                            }`}
-                          >
-                            {sz === 'sm' ? 'Small' : sz === 'md' ? 'Medium' : 'Large'}
-                          </button>
-                        ))}
+                    <div className="space-y-4">
+                      <div>
+                        <span className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Photo Size</span>
+                        <div className="grid grid-cols-3 gap-1 bg-zinc-50 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                          {(['sm', 'md', 'lg'] as const).map((sz) => (
+                            <button
+                              key={sz}
+                              onClick={() => onSetPhotoSize?.(sz)}
+                              className={`text-[10px] py-1 rounded-md font-medium capitalize cursor-pointer transition-all ${
+                                photoSize === sz
+                                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700'
+                                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 border border-transparent'
+                              }`}
+                            >
+                              {sz === 'sm' ? 'Small' : sz === 'md' ? 'Medium' : 'Large'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <span className="block text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-1.5">Image Fit</span>
+                        <div className="grid grid-cols-2 gap-1 bg-zinc-50 dark:bg-zinc-900 p-0.5 rounded-lg border border-zinc-100 dark:border-zinc-800">
+                          {(['cover', 'contain'] as const).map((fit) => (
+                            <button
+                              key={fit}
+                              onClick={() => onSetImageFit?.(fit)}
+                              className={`text-[10px] py-1 rounded-md font-medium capitalize cursor-pointer transition-all ${
+                                imageFit === fit
+                                  ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-zinc-200 dark:border-zinc-700'
+                                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 border border-transparent'
+                              }`}
+                            >
+                              {fit}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}

@@ -8,6 +8,7 @@ export interface ElectronAPI {
   writePhoto: (workspacePath: string, vaultName: string, sourcePath: string, fileName: string) => Promise<string>;
   deletePhoto: (workspacePath: string, vaultName: string, photoId: string) => Promise<boolean>;
   renamePhoto: (workspacePath: string, vaultName: string, photoId: string, newName: string) => Promise<boolean>;
+  getPathForFile: (file: File) => string;
 }
 
 declare global {

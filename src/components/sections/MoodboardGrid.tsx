@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { Plus, Upload } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
+import { Plus, Upload, FileText, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { Photo } from '../../types/solum'
 
 interface MoodboardGridProps {
@@ -7,11 +8,13 @@ interface MoodboardGridProps {
   vaultName?: string
   onAddPhotos?: (files: FileList) => void
   onDeletePhoto?: (id: string) => void
+  onRenamePhoto?: (id: string, newName: string) => void
   onBack?: () => void
   actionMode?: 'rename' | 'delete' | null
   onSetActionMode?: (mode: 'rename' | 'delete' | null) => void
   photoSize?: 'sm' | 'md' | 'lg'
   fontSize?: number
+  imageFit?: 'cover' | 'contain'
 }
 
 export default function MoodboardGrid({
@@ -19,14 +22,17 @@ export default function MoodboardGrid({
   vaultName = 'Design Inspiration',
   onAddPhotos,
   onDeletePhoto,
+  onRenamePhoto,
   onBack: _onBack,
   actionMode = null,
   onSetActionMode,
   photoSize = 'md',
   fontSize = 14,
+  imageFit = 'cover',
 }: MoodboardGridProps) {
   const [localPhotos, setLocalPhotos] = useState<Photo[]>(photos)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   
   // Inline rename states for photos
   const [editingPhotoId, setEditingPhotoId] = useState<string | null>(null)
@@ -46,6 +52,44 @@ export default function MoodboardGrid({
     }
   }, [actionMode])
 
+  // Lightbox navigation helpers
+  const selectedPhoto = selectedIndex !== null ? localPhotos[selectedIndex] ?? null : null
+
+  const goToPrev = useCallback(() => {
+    if (selectedIndex === null || localPhotos.length === 0) return
+    setSelectedIndex(selectedIndex <= 0 ? localPhotos.length - 1 : selectedIndex - 1)
+  }, [selectedIndex, localPhotos.length])
+
+  const goToNext = useCallback(() => {
+    if (selectedIndex === null || localPhotos.length === 0) return
+    setSelectedIndex(selectedIndex >= localPhotos.length - 1 ? 0 : selectedIndex + 1)
+  }, [selectedIndex, localPhotos.length])
+
+  const closeLightbox = useCallback(() => {
+    setSelectedIndex(null)
+  }, [])
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (selectedIndex === null) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        goToPrev()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        goToNext()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        closeLightbox()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedIndex, goToPrev, goToNext, closeLightbox])
+
   const triggerUpload = () => {
     fileInputRef.current?.click()
   }
@@ -63,7 +107,9 @@ export default function MoodboardGrid({
       const newPhotos: Photo[] = []
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        if (file.type.startsWith('image/')) {
+        const isImage = file.type.startsWith('image/')
+        const isPdf = file.type === 'application/pdf'
+        if (isImage || isPdf) {
           const url = URL.createObjectURL(file)
           const name = file.name.substring(0, file.name.lastIndexOf('.')) || file.name
           newPhotos.push({
@@ -80,7 +126,7 @@ export default function MoodboardGrid({
     }
   }
 
-  const handlePhotoClick = (photo: Photo, e: React.MouseEvent) => {
+  const handlePhotoClick = (photo: Photo, index: number, e: React.MouseEvent) => {
     e.stopPropagation()
     if (actionMode === 'rename') {
       setEditingPhotoId(photo.id)
@@ -90,28 +136,25 @@ export default function MoodboardGrid({
         onDeletePhoto?.(photo.id)
         onSetActionMode?.(null)
       }
+    } else {
+      setSelectedIndex(index)
     }
   }
 
   const handleSavePhotoRename = (id: string, newName: string) => {
-    if (newName.trim()) {
-      onSavePhotoRename(id, newName.trim())
+    const trimmed = newName.trim()
+    if (trimmed) {
+      const photo = localPhotos.find(p => p.id === id)
+      if (photo && photo.name !== trimmed) {
+        if (onRenamePhoto) {
+          onRenamePhoto(id, trimmed)
+        } else {
+          setLocalPhotos(prev => prev.map(p => p.id === id ? { ...p, name: trimmed } : p))
+        }
+      }
     }
     setEditingPhotoId(null)
     onSetActionMode?.(null)
-  }
-
-  const onSavePhotoRename = (id: string, newName?: string) => {
-    // If parent doesn't override via state trigger, rename locally
-    // For our app, the parent App.tsx handles IPC rename
-    const targetElement = document.getElementById(`rename-form-${id}`) as HTMLFormElement | null
-    if (targetElement) {
-      const input = targetElement.querySelector('input')
-      if (input && newName !== undefined) {
-        input.value = newName
-      }
-      targetElement.dispatchEvent(new Event('submit'))
-    }
   }
 
   // Drag & drop handlers
@@ -132,6 +175,84 @@ export default function MoodboardGrid({
     }
   }
 
+  // Lightbox rendered via portal to ensure full-page coverage
+  const lightbox = selectedPhoto && createPortal(
+    <div 
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-md"
+      style={{ animation: 'fadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+      onClick={closeLightbox}
+    >
+      {/* Close button */}
+      <button 
+        className="absolute top-4 right-4 p-2.5 rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors z-10 cursor-pointer"
+        onClick={closeLightbox}
+        title="Close (Esc)"
+      >
+        <X className="w-5 h-5" />
+      </button>
+
+      {/* Previous button */}
+      {localPhotos.length > 1 && (
+        <button 
+          className="absolute left-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors z-10 cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); goToPrev() }}
+          title="Previous (←)"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Next button */}
+      {localPhotos.length > 1 && (
+        <button 
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-3 rounded-full bg-white/10 text-white hover:bg-white/25 transition-colors z-10 cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); goToNext() }}
+          title="Next (→)"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      )}
+
+      {/* Content area */}
+      <div 
+        className="w-full h-full max-w-5xl max-h-[90vh] p-12 flex items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {(selectedPhoto.id.toLowerCase().endsWith('.pdf') || selectedPhoto.url.toLowerCase().endsWith('.pdf')) ? (
+          <iframe 
+            src={selectedPhoto.url} 
+            className="w-full h-full border-0 rounded-xl bg-white shadow-2xl" 
+            title={selectedPhoto.name || "PDF Document"}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center max-w-full max-h-full">
+            <img 
+              src={selectedPhoto.url} 
+              alt={selectedPhoto.name || "Lightbox item"}
+              className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl select-none"
+              draggable={false}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Bottom bar: name + position counter */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 select-none">
+        {selectedPhoto.name && (
+          <span className="text-white text-sm font-medium bg-black/50 px-4 py-2 rounded-full backdrop-blur-sm">
+            {selectedPhoto.name}
+          </span>
+        )}
+        {localPhotos.length > 1 && (
+          <span className="text-white/60 text-xs font-mono bg-black/40 px-3 py-1.5 rounded-full">
+            {(selectedIndex ?? 0) + 1} / {localPhotos.length}
+          </span>
+        )}
+      </div>
+    </div>,
+    document.body
+  )
+
   return (
     <div 
       className="py-4 font-sans animate-fade-in relative min-h-[60vh] flex flex-col"
@@ -143,7 +264,7 @@ export default function MoodboardGrid({
       <input 
         type="file" 
         multiple 
-        accept="image/*" 
+        accept="image/*,application/pdf" 
         ref={fileInputRef} 
         onChange={handleFileChange}
         className="hidden" 
@@ -181,12 +302,13 @@ export default function MoodboardGrid({
             ? 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8'
             : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6'
         }`}>
-          {localPhotos.map((photo) => {
+          {localPhotos.map((photo, index) => {
             const isEditingThis = photo.id === editingPhotoId
+            const isPdf = photo.id.toLowerCase().endsWith('.pdf') || photo.url.toLowerCase().endsWith('.pdf')
             return (
               <div 
                 key={photo.id}
-                onClick={(e) => handlePhotoClick(photo, e)}
+                onClick={(e) => handlePhotoClick(photo, index, e)}
                 className={`group flex flex-col relative cursor-pointer overflow-hidden rounded-xl transition-all duration-300 ${
                   photoSize === 'sm' ? 'p-1' : photoSize === 'lg' ? 'p-2' : 'p-1.5'
                 } ${
@@ -198,13 +320,22 @@ export default function MoodboardGrid({
                 }`}
               >
                 {/* Photo Thumbnail Wrapper */}
-                <div className="aspect-square w-full overflow-hidden rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-900">
-                  <img 
-                    src={photo.url} 
-                    alt={photo.name || "Moodboard item"}
-                    className="w-full h-full object-cover transform group-hover:scale-[1.02] transition-transform duration-300 ease-out"
-                    loading="lazy"
-                  />
+                <div className="aspect-square w-full overflow-hidden rounded-lg bg-zinc-50 dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-900 relative">
+                  {isPdf ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-50 dark:bg-zinc-900 text-zinc-400 dark:text-zinc-600 p-4">
+                      <FileText className="w-12 h-12 mb-2 text-red-500 dark:text-red-600/80" strokeWidth={1.5} />
+                      <span className="text-[10px] font-semibold uppercase tracking-wider text-red-500 dark:text-red-400">PDF Document</span>
+                    </div>
+                  ) : (
+                    <img 
+                      src={photo.url} 
+                      alt={photo.name || "Moodboard item"}
+                      className={`w-full h-full transform group-hover:scale-[1.02] transition-transform duration-300 ease-out ${
+                        imageFit === 'contain' ? 'object-contain p-2' : 'object-cover'
+                      }`}
+                      loading="lazy"
+                    />
+                  )}
                   {/* Gentle hover dim overlay (no buttons) */}
                   <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                 </div>
@@ -213,35 +344,9 @@ export default function MoodboardGrid({
                 <div className="mt-2 text-center w-full px-1">
                   {isEditingThis ? (
                     <form 
-                      id={`rename-form-${photo.id}`}
                       onSubmit={(e) => {
                         e.preventDefault()
-                        const target = e.target as HTMLFormElement
-                        const input = target.querySelector('input')
-                        if (input && input.value.trim()) {
-                          const newName = input.value.trim()
-                          // Trigger rename API
-                          const container = document.getElementById(`rename-form-${photo.id}`)
-                          // @ts-ignore
-                          if (container && container.dataset.callback) {
-                            // @ts-ignore
-                            container.dataset.callback(newName)
-                          }
-                        }
-                        setEditingPhotoId(null)
-                      }}
-                      ref={(el) => {
-                        if (el) {
-                          // Bind callback parameter onto dataset so parent knows
-                          // @ts-ignore
-                          el.dataset.callback = (val: string) => {
-                            // @ts-ignore
-                            if (window.onPhotoRenameTrigger) {
-                              // @ts-ignore
-                              window.onPhotoRenameTrigger(photo.id, val)
-                            }
-                          }
-                        }
+                        handleSavePhotoRename(photo.id, renameValue)
                       }}
                       onClick={(e) => e.stopPropagation()}
                       className="w-full text-center"
@@ -287,6 +392,9 @@ export default function MoodboardGrid({
           </div>
         </div>
       )}
+
+      {/* Lightbox rendered via portal at document.body */}
+      {lightbox}
     </div>
   )
 }

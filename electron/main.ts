@@ -2,12 +2,15 @@ import { app, BrowserWindow, ipcMain, dialog, protocol, net } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs/promises'
 import { existsSync } from 'fs'
+import { resolveMediaUrl } from './path-utils'
+
+const SUPPORTED_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.tiff', '.tif', '.ico', '.avif', '.pdf']
 
 let mainWindow: BrowserWindow | null = null
 
 // Register custom media protocol to load local files without breaking web security
 protocol.registerSchemesAsPrivileged([
-  { scheme: 'solum-media', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true } }
+  { scheme: 'solum-media', privileges: { bypassCSP: true, secure: true, supportFetchAPI: true, standard: true } }
 ])
 
 function createWindow() {
@@ -39,17 +42,8 @@ function createWindow() {
 app.whenReady().then(() => {
   // Handle local media protocol
   protocol.handle('solum-media', (request) => {
-    const url = new URL(request.url)
-    // Decode URI path (convert %20 back to spaces, etc.)
-    const filePath = decodeURIComponent(url.pathname)
-    
-    // Resolve Windows file path prefix (e.g. /C:/path -> C:/path)
-    let cleanedPath = filePath
-    if (process.platform === 'win32' && filePath.startsWith('/')) {
-      cleanedPath = filePath.slice(1)
-    }
-
-    return net.fetch('file://' + cleanedPath)
+    const fileUrl = resolveMediaUrl(request.url)
+    return net.fetch(fileUrl)
   })
 
   createWindow()
@@ -89,7 +83,7 @@ async function countImagesInDir(dirPath: string): Promise<number> {
     for (const entry of entries) {
       if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase()
-        if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext)) {
+        if (SUPPORTED_EXTENSIONS.includes(ext)) {
           count++
         }
       }
@@ -185,12 +179,12 @@ ipcMain.handle('read-photos', async (_, workspacePath: string, vaultName: string
     for (const entry of entries) {
       if (entry.isFile()) {
         const ext = path.extname(entry.name).toLowerCase()
-        if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'].includes(ext)) {
+        if (SUPPORTED_EXTENSIONS.includes(ext)) {
           const fullPath = path.join(vaultPath, entry.name)
           const stats = await fs.stat(fullPath)
           
           // Construct custom protocol URL
-          const mediaUrl = `solum-media://${fullPath.replace(/\\/g, '/')}`
+          const mediaUrl = `solum-media:///${fullPath.replace(/\\/g, '/')}`
           const name = path.basename(entry.name, ext)
 
           photos.push({
@@ -221,7 +215,7 @@ ipcMain.handle('write-photo', async (_, workspacePath: string, vaultName: string
     await fs.copyFile(sourcePath, targetPath)
     
     // Return the new media URL
-    const mediaUrl = `solum-media://${targetPath.replace(/\\/g, '/')}`
+    const mediaUrl = `solum-media:///${targetPath.replace(/\\/g, '/')}`
     return mediaUrl
   } catch (error) {
     console.error('Failed to copy photo:', error)

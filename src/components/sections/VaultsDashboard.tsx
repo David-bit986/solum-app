@@ -77,8 +77,14 @@ export default function VaultsDashboard({
   }
 
   const handleRenameVaultInline = (id: string, newName: string) => {
-    if (!newName.trim()) return
-    onRenameVault?.(id, newName.trim())
+    const trimmedNewName = newName.trim()
+    if (!trimmedNewName) return
+
+    const vault = vaults.find(v => v.id === id)
+    if (vault && vault.name !== trimmedNewName) {
+      onRenameVault?.(id, trimmedNewName)
+    }
+
     setEditingVaultId(null)
     onSetActionMode?.(null)
   }
