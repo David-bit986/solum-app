@@ -119,11 +119,23 @@ Outputs the frontend to `dist/` and Electron processes to `dist-electron/`.
 
 ### Package as executable
 
+You can package the app for different platforms:
+
 ```bash
-npm run package
+# Package for Windows (.exe)
+npm run package:win
+
+# Package for macOS (.app)
+npm run package:mac
+
+# Package for Linux
+npm run package:linux
+
+# Package for all platforms
+npm run package:all
 ```
 
-Creates a standalone `.exe` (Windows) in the `release/` directory.
+Outputs will be placed in the `release/` directory.
 
 ---
 

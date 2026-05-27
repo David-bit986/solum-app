@@ -13,7 +13,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "package": "npm run build && electron-packager . Solum --platform=win32 --arch=x64 --out=release --overwrite --ignore=\"^/(src|electron|tsconfig|vite\\.config\\.ts|release)\""
+    "package:win": "npm run build && electron-packager . Solum --platform=win32 --arch=x64 --out=release --overwrite --ignore=\"^/(src|electron|tsconfig|vite\\.config\\.ts|release)\"",
+    "package:mac": "npm run build && electron-packager . Solum --platform=darwin --arch=x64,arm64 --out=release --overwrite --ignore=\"^/(src|electron|tsconfig|vite\\.config\\.ts|release)\"",
+    "package:linux": "npm run build && electron-packager . Solum --platform=linux --arch=x64 --out=release --overwrite --ignore=\"^/(src|electron|tsconfig|vite\\.config\\.ts|release)\"",
+    "package:all": "npm run build && electron-packager . Solum --all --out=release --overwrite --ignore=\"^/(src|electron|tsconfig|vite\\.config\\.ts|release)\""
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.0",
