@@ -1,57 +1,30 @@
 # Solum — Native Desktop Moodboard
 
-> A minimalist, local-first moodboard application for organizing visual inspiration without distraction.
+A minimalist, local-first moodboard application that organizes visual inspiration.
 
-Solum is inspired by Obsidian's vault philosophy: pick any folder on your computer, and it becomes your creative workspace. Subfolders are **Vaults**, image and PDF files inside them are **Photos**. Every action writes directly to your filesystem — no cloud, no accounts, no lock-in.
+Solum runs on Obsidian's vault pattern: select any local folder to use as a workspace. Subfolders represent **Vaults**, and image or PDF files within them serve as **Photos**. The application writes all operations directly to your filesystem without cloud synchronization, accounts, or proprietary locks.
 
-Built with **React**, **TypeScript**, **Tailwind CSS v4**, and **Electron**.
-
----
-
-## Screenshots
-
-<p align="center">
-  <img src="docs/screenshots/vaults-dashboard.png" alt="Vaults Dashboard" width="720" />
-</p>
-<p align="center"><em>Vaults Dashboard — Browse and manage your workspace folders</em></p>
-
-<br />
-
-<p align="center">
-  <img src="docs/screenshots/moodboard-grid.png" alt="Moodboard Grid" width="720" />
-</p>
-<p align="center"><em>Moodboard Grid — Visual grid of all photos in a vault</em></p>
-
-<br />
-
-<p align="center">
-  <img src="docs/screenshots/lightbox-view.png" alt="Lightbox View" width="720" />
-</p>
-<p align="center"><em>Lightbox — Full-screen preview with keyboard navigation</em></p>
-
----
+Built with React, TypeScript, Tailwind CSS v4, and Electron.
 
 ## Features
 
-- **Obsidian-Style Workspace Picker** — Open any local directory as your creative canvas.
-- **Direct Filesystem Operations** — Create, rename, and delete vaults and photos. Every change is written to disk instantly.
-- **Drag & Drop Import** — Drag images from your desktop or file explorer directly into a vault.
-- **Lightbox with Navigation** — Click any photo for a full-screen preview. Use `←` / `→` arrow keys or the on-screen buttons to cycle through all items. Press `Esc` to close.
-- **Multi-Format Support** — PNG, JPG, JPEG, GIF, SVG, WebP, and PDF files are all supported.
-- **Image Fit Toggle** — Switch between `cover` (fill) and `contain` (fit) modes for thumbnails.
-- **Dynamic Settings** — Adjust font size, grid density, and thumbnail size from the settings panel.
-- **Dark & Light Modes** — Sleek zinc palette with system-aware theming.
-
----
+- **Local Workspaces**: Open any local directory as a creative canvas.
+- **Direct Filesystem Access**: Write create, rename, and delete actions directly to disk.
+- **Drag-and-Drop Import**: Move images from your desktop or file explorer into a vault.
+- **Lightbox Navigation**: Cycle through full-screen previews using the `←` / `→` arrow keys or the overlay buttons. Press `Esc` to exit.
+- **Multi-Format Support**: Render PNG, JPG, JPEG, GIF, SVG, WebP, and PDF files.
+- **Thumbnail Fit Toggle**: Toggle between `cover` (fill) and `contain` (fit) modes for thumbnails.
+- **Adjustable Interface**: Customize font sizes, grid density, and thumbnail sizes.
+- **Theming**: Zinc color scheme with automatic light and dark mode toggles.
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) v18 or higher
+- Node.js (v18 or higher)
 - npm
 
-### Install
+### Installation
 
 ```bash
 git clone https://github.com/David-bit986/solum-app.git
@@ -65,79 +38,68 @@ npm install
 npm run dev
 ```
 
-This starts the Vite dev server and launches Electron together.
-
----
+This command starts the Vite development server and launches Electron.
 
 ## Project Structure
 
 ```
 solum-app/
 ├── electron/
-│   ├── main.ts                # Electron main process — dialogs, file ops, custom protocol
-│   ├── main.test.ts           # Tests for IPC handlers and protocol resolution
-│   ├── preload.ts             # Context bridge — safe window.electronAPI
-│   └── path-utils.ts          # Platform-safe file URL utilities
+│   ├── main.ts                # Main process (dialogs, file systems, protocols)
+│   ├── main.test.ts           # IPC handlers and protocol tests
+│   ├── preload.ts             # Safe context bridge definitions
+│   └── path-utils.ts          # Safe file URL utilities
 │
 ├── src/
-│   ├── main.tsx               # Renderer entrypoint
-│   ├── App.tsx                # Router, drag-and-drop handler, state sync
-│   ├── index.css              # Tailwind v4 entrypoint and design tokens
+│   ├── main.tsx               # Entrypoint
+│   ├── App.tsx                # App router and drag-and-drop state
+│   ├── index.css              # Custom variables and design tokens
 │   │
 │   ├── types/
-│   │   ├── solum.ts           # Shared models (Vault, Photo)
-│   │   └── electron.d.ts      # IPC bridge type declarations
+│   │   ├── solum.ts           # Data models (Vault, Photo)
+│   │   └── electron.d.ts      # IPC bridge types
 │   │
 │   └── components/
 │       ├── shell/
-│       │   └── AppShell.tsx   # Navigation header, settings panel
+│       │   └── AppShell.tsx   # Header and settings menu
 │       └── sections/
-│           ├── VaultsDashboard.tsx       # Vault grid with CRUD
-│           ├── VaultsDashboard.test.tsx  # Dashboard tests
-│           ├── MoodboardGrid.tsx        # Photo grid + lightbox + navigation
-│           └── MoodboardGrid.test.tsx   # Moodboard tests
+│           ├── VaultsDashboard.tsx       # Vault catalog grid
+│           ├── VaultsDashboard.test.tsx  # Dashboard unit tests
+│           ├── MoodboardGrid.tsx        # Photos grid and lightbox
+│           └── MoodboardGrid.test.tsx   # Moodboard unit tests
 │
-├── package.json
-├── vite.config.ts
-├── tsconfig.json
-├── tsconfig.app.json
-├── tsconfig.electron.json
-└── tsconfig.node.json
+└── package.json
 ```
-
----
 
 ## Build & Package
 
-### Compile for production
+### Production Compilation
 
 ```bash
 npm run build
 ```
 
-Outputs the frontend to `dist/` and Electron processes to `dist-electron/`.
+This compiles frontend code into `dist/` and Electron files into `dist-electron/`.
 
-### Package as executable
+### Package Executable
 
-You can package the app for different platforms:
+Package the application for specific operating systems:
 
 ```bash
-# Package for Windows (.exe)
+# Windows (.exe)
 npm run package:win
 
-# Package for macOS (.app)
+# macOS (.app)
 npm run package:mac
 
-# Package for Linux
+# Linux
 npm run package:linux
 
-# Package for all platforms
+# All Platforms
 npm run package:all
 ```
 
-Outputs will be placed in the `release/` directory.
-
----
+The build output displays in the `release/` directory.
 
 ## Keyboard Shortcuts
 
@@ -147,19 +109,13 @@ Outputs will be placed in the `release/` directory.
 | `→` | Next photo (in lightbox) |
 | `Esc` | Close lightbox |
 
----
+## Technical Stack
 
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | React 19 + TypeScript |
-| Styling | Tailwind CSS v4 |
-| Desktop | Electron 34 |
-| Bundler | Vite |
-| Testing | Vitest |
-
----
+- **Framework**: React 19 and TypeScript
+- **Styling**: Tailwind CSS v4
+- **Desktop Wrapper**: Electron 34
+- **Bundler**: Vite
+- **Testing**: Vitest
 
 ## License
 
